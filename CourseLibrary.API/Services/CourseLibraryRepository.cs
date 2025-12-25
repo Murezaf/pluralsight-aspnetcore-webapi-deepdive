@@ -77,7 +77,6 @@ public class CourseLibraryRepository : ICourseLibraryRepository
             throw new ArgumentNullException(nameof(author));
         }
 
-        // the repository fills the id (instead of using identity columns)
         author.Id = Guid.NewGuid();
 
         foreach (var course in author.Courses)
@@ -119,8 +118,7 @@ public class CourseLibraryRepository : ICourseLibraryRepository
         return await _context.Authors.FirstOrDefaultAsync(a => a.Id == authorId);
 #pragma warning restore CS8603 // Possible null reference return.
     }
-
-   
+  
     public async Task<IEnumerable<Author>> GetAuthorsAsync()
     {
         return await _context.Authors.ToListAsync();
@@ -149,4 +147,3 @@ public class CourseLibraryRepository : ICourseLibraryRepository
         return (await _context.SaveChangesAsync() >= 0);
     }
 }
-
