@@ -4,6 +4,10 @@ using CourseLibrary.API.Models;
 using CourseLibrary.API.Services;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace CourseLibrary.API.Controllers;
 
@@ -127,7 +131,12 @@ public class CoursesController : ControllerBase
         if (courseToUpdateEntity == null)
         {
             CourseForUpdateDto courseForUpdateDto = new CourseForUpdateDto();
-            patchDocument.ApplyTo(courseForUpdateDto);
+            patchDocument.ApplyTo(courseForUpdateDto, ModelState);
+
+            if (!TryValidateModel(courseForUpdateDto))
+            {
+                return ValidationProblem(ModelState);
+            }
 
             Course courseToAddEntity = _mapper.Map<Course>(courseForUpdateDto);
             courseToAddEntity.Id = courseId;
@@ -141,9 +150,14 @@ public class CoursesController : ControllerBase
             new { authorId, courseId = returningCourse.Id },
             returningCourse);
         }
-            
+
         CourseForUpdateDto courseToPatch = _mapper.Map<CourseForUpdateDto>(courseToUpdateEntity);
-        patchDocument.ApplyTo(courseToPatch);
+        patchDocument.ApplyTo(courseToPatch, ModelState); //Move patch errors from exceptions to ModelState => 400 instead of 500
+
+        if (!TryValidateModel(courseToPatch))
+        {
+            return ValidationProblem(ModelState);
+        }
 
         _mapper.Map(courseToPatch, courseToUpdateEntity);
 
@@ -172,5 +186,12 @@ public class CoursesController : ControllerBase
         await _courseLibraryRepository.SaveAsync();
 
         return NoContent();
+    }
+
+    public override ActionResult ValidationProblem([ActionResultObjectValue] ModelStateDictionary modelStateDictionary)
+    {
+        IOptions<ApiBehaviorOptions> options = HttpContext.RequestServices.GetRequiredService<IOptions<ApiBehaviorOptions>>();
+
+        return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
     }
 }
