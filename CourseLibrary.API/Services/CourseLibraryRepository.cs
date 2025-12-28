@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.API.DbContexts;
-using CourseLibrary.API.Entities; 
+using CourseLibrary.API.Entities;
+using CourseLibrary.API.ResourceParameters;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseLibrary.API.Services;
@@ -145,5 +146,63 @@ public class CourseLibraryRepository : ICourseLibraryRepository
     public async Task<bool> SaveAsync()
     {
         return (await _context.SaveChangesAsync() >= 0);
+    }
+
+
+    //public async Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "")
+    //{
+    //    if(string.IsNullOrWhiteSpace(mainCategory))
+    //        return await GetAuthorsAsync();
+
+    //    mainCategory = mainCategory.Trim();
+
+    //    return await _context.Authors.Where(a => a.MainCategory == mainCategory).ToListAsync();
+    //}
+
+    //public async Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "", string? searchQuery = "")
+    //{
+    //    if (string.IsNullOrWhiteSpace(mainCategory) && string.IsNullOrWhiteSpace(searchQuery))
+    //        return await GetAuthorsAsync();
+
+    //    IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+    //    if(!string.IsNullOrWhiteSpace(mainCategory))
+    //    {
+    //        mainCategory = mainCategory.Trim();
+    //        collection = collection.Where(a => a.MainCategory == mainCategory);
+    //    }
+
+    //    if(!string.IsNullOrWhiteSpace(searchQuery))
+    //    {
+    //        searchQuery = searchQuery.Trim();
+    //        collection = collection.Where(a => a.FirstName.Contains(searchQuery) ||  a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+    //    }
+
+    //    return await collection.ToListAsync();
+    //}
+
+    public async Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    {
+        if(authorRecourseParameters == null) 
+            throw new NullReferenceException(nameof(authorRecourseParameters));
+
+        if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+            return await GetAuthorsAsync();
+
+        IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+        {
+            string mainCategory = authorRecourseParameters.MainCategory.Trim();
+            collection = collection.Where(a => a.MainCategory == mainCategory);
+        }
+
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+        {
+            string searchQuery = authorRecourseParameters.SearchQuery.Trim();
+            collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+        }
+
+        return await collection.ToListAsync();
     }
 }

@@ -1,4 +1,5 @@
-﻿using CourseLibrary.API.Entities; 
+﻿using CourseLibrary.API.Entities;
+using CourseLibrary.API.ResourceParameters;
 
 namespace CourseLibrary.API.Services;
 
@@ -17,5 +18,9 @@ public interface ICourseLibraryRepository
     void UpdateAuthor(Author author);
     Task<bool> AuthorExistsAsync(Guid authorId);
     Task<bool> SaveAsync();
+
+    //Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "");
+    //Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "", string? searchQuery = "");
+    Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters);
 }
 
