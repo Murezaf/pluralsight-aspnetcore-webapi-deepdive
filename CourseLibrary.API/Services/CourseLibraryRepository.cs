@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourseLibrary.API.Services;
 
-public class CourseLibraryRepository : ICourseLibraryRepository 
+public class CourseLibraryRepository : ICourseLibraryRepository
 {
     private readonly CourseLibraryContext _context;
 
@@ -119,7 +119,7 @@ public class CourseLibraryRepository : ICourseLibraryRepository
         return await _context.Authors.FirstOrDefaultAsync(a => a.Id == authorId);
 #pragma warning restore CS8603 // Possible null reference return.
     }
-  
+
     public async Task<IEnumerable<Author>> GetAuthorsAsync()
     {
         return await _context.Authors.ToListAsync();
@@ -183,11 +183,11 @@ public class CourseLibraryRepository : ICourseLibraryRepository
 
     public async Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
     {
-        if(authorRecourseParameters == null) 
+        if (authorRecourseParameters == null)
             throw new NullReferenceException(nameof(authorRecourseParameters));
 
-        if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
-            return await GetAuthorsAsync();
+        //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+        //    return await GetAuthorsAsync(); //Paging should happen anyway
 
         IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
 
@@ -202,6 +202,10 @@ public class CourseLibraryRepository : ICourseLibraryRepository
             string searchQuery = authorRecourseParameters.SearchQuery.Trim();
             collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
         }
+
+        //Add Paging
+        collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
+            .Take(authorRecourseParameters.PageSize);
 
         return await collection.ToListAsync();
     }
