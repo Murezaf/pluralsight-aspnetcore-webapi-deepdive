@@ -69,11 +69,12 @@ public class AuthorsController : ControllerBase
 
         //var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(mainCategory, searchQuery); 
         var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(authorRecourseParameters);
-
+        //var == PagedList<Entities.Author>
+        
         string? previousPageLink = authorsFromRepo.HasPrevious ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.PreviousPage) : null;
         string? nextPageLink = authorsFromRepo.HasNext ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.NextPage) : null;
 
-        var paginationMetaData = new
+        var paginationMetaData = new //Anonymous Object 
         {
             totalCount = authorsFromRepo.TotalCount,
             pageSize = authorsFromRepo.PageSize,
