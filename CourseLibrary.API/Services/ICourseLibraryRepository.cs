@@ -1,4 +1,5 @@
 ﻿using CourseLibrary.API.Entities;
+using CourseLibrary.API.Helpers;
 using CourseLibrary.API.ResourceParameters;
 
 namespace CourseLibrary.API.Services;
@@ -21,6 +22,7 @@ public interface ICourseLibraryRepository
 
     //Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "");
     //Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "", string? searchQuery = "");
-    Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters);
+    //Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters);
+    Task<PagedList<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters);
 }
 

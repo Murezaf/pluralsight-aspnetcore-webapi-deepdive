@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.API.DbContexts;
 using CourseLibrary.API.Entities;
+using CourseLibrary.API.Helpers;
 using CourseLibrary.API.ResourceParameters;
 using Microsoft.EntityFrameworkCore;
 
@@ -208,5 +209,34 @@ public class CourseLibraryRepository : ICourseLibraryRepository
             .Take(authorRecourseParameters.PageSize);
 
         return await collection.ToListAsync();
+    }
+
+    async Task<PagedList<Author>> ICourseLibraryRepository.GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    {
+        if (authorRecourseParameters == null)
+            throw new NullReferenceException(nameof(authorRecourseParameters));
+
+        //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+        //    return await GetAuthorsAsync(); //Paging should happen anyway
+
+        IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+        {
+            string mainCategory = authorRecourseParameters.MainCategory.Trim();
+            collection = collection.Where(a => a.MainCategory == mainCategory);
+        }
+
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+        {
+            string searchQuery = authorRecourseParameters.SearchQuery.Trim();
+            collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+        }
+
+        //Add Paging
+        //collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
+        //.Take(authorRecourseParameters.PageSize);
+
+        return await PagedList<Author>.CreateAsync(collection, authorRecourseParameters.PageNumber, authorRecourseParameters.PageSize); //paging logic happens inside CreateAsync method. no need to apply here.
     }
 }
