@@ -182,7 +182,36 @@ public class CourseLibraryRepository : ICourseLibraryRepository
     //    return await collection.ToListAsync();
     //}
 
-    public async Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    //public async Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    //{
+    //    if (authorRecourseParameters == null)
+    //        throw new NullReferenceException(nameof(authorRecourseParameters));
+
+    //    //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    //    return await GetAuthorsAsync(); //Paging should happen anyway
+
+    //    IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+    //    {
+    //        string mainCategory = authorRecourseParameters.MainCategory.Trim();
+    //        collection = collection.Where(a => a.MainCategory == mainCategory);
+    //    }
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    {
+    //        string searchQuery = authorRecourseParameters.SearchQuery.Trim();
+    //        collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+    //    }
+
+    //    //Add Paging
+    //    collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
+    //        .Take(authorRecourseParameters.PageSize);
+
+    //    return await collection.ToListAsync();
+    //}
+
+    public async Task<PagedList<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
     {
         if (authorRecourseParameters == null)
             throw new NullReferenceException(nameof(authorRecourseParameters));
@@ -204,33 +233,13 @@ public class CourseLibraryRepository : ICourseLibraryRepository
             collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
         }
 
-        //Add Paging
-        collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
-            .Take(authorRecourseParameters.PageSize);
-
-        return await collection.ToListAsync();
-    }
-
-    async Task<PagedList<Author>> ICourseLibraryRepository.GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
-    {
-        if (authorRecourseParameters == null)
-            throw new NullReferenceException(nameof(authorRecourseParameters));
-
-        //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
-        //    return await GetAuthorsAsync(); //Paging should happen anyway
-
-        IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
-
-        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.OrderBy))
         {
-            string mainCategory = authorRecourseParameters.MainCategory.Trim();
-            collection = collection.Where(a => a.MainCategory == mainCategory);
-        }
-
-        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
-        {
-            string searchQuery = authorRecourseParameters.SearchQuery.Trim();
-            collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+            if (authorRecourseParameters.OrderBy.ToLowerInvariant() == "name") //Can't write this such code for each parameter and their combination all have asc and desc as an option
+            {
+                string orderBy = authorRecourseParameters.OrderBy.Trim();
+                collection = collection.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
+            }
         }
 
         //Add Paging

@@ -18,5 +18,7 @@
                 pageSize = value > maxPagesSize ? maxPagesSize : value;
             }
         }
+
+        public string OrderBy { get; set; } = "Name";
     }
 }
