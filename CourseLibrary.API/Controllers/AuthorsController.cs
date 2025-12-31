@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
 using CourseLibrary.API.ResourceParameters;
@@ -14,15 +15,19 @@ public class AuthorsController : ControllerBase
 {
     private readonly ICourseLibraryRepository _courseLibraryRepository;
     private readonly IMapper _mapper;
+    private readonly IPropertyMappingService _propertyMappingService;
 
     public AuthorsController(
         ICourseLibraryRepository courseLibraryRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IPropertyMappingService propertyMappingService)
     {
         _courseLibraryRepository = courseLibraryRepository ??
             throw new ArgumentNullException(nameof(courseLibraryRepository));
         _mapper = mapper ??
             throw new ArgumentNullException(nameof(mapper));
+        _propertyMappingService = propertyMappingService ??
+            throw new ArgumentNullException(nameof(propertyMappingService));
     }
 
     private string? CreateAuthorsResourceUri(AuthorRecourseParameters authorRecourseParameters, ResorceUriType resorceUriType)
@@ -36,7 +41,9 @@ public class AuthorsController : ControllerBase
                        searchQuery = authorRecourseParameters.SearchQuery,
                        mainCategory = authorRecourseParameters.MainCategory,
                        pageNumber = authorRecourseParameters.PageNumber + 1,
-                       pageSize = authorRecourseParameters.PageSize
+                       pageSize = authorRecourseParameters.PageSize,
+
+                       orderBy = authorRecourseParameters.OrderBy
                    });
             case ResorceUriType.PreviousPage:
                 return Url.Link("GetAuthors",
@@ -45,7 +52,9 @@ public class AuthorsController : ControllerBase
                         searchQuery = authorRecourseParameters.SearchQuery,
                         mainCategory = authorRecourseParameters.MainCategory,
                         pageNumber = authorRecourseParameters.PageNumber - 1,
-                        pageSize = authorRecourseParameters.PageSize
+                        pageSize = authorRecourseParameters.PageSize,
+
+                        orderBy = authorRecourseParameters.OrderBy
                     });
             default:
                 return Url.Link("GetAuthors",
@@ -54,7 +63,9 @@ public class AuthorsController : ControllerBase
                         searchQuery = authorRecourseParameters.SearchQuery,
                         mainCategory = authorRecourseParameters.MainCategory,
                         pageNumber = authorRecourseParameters.PageNumber,
-                        pageSize = authorRecourseParameters.PageSize
+                        pageSize = authorRecourseParameters.PageSize,
+
+                        orderBy = authorRecourseParameters.OrderBy
                     });
         }
     }
@@ -67,10 +78,13 @@ public class AuthorsController : ControllerBase
     {
         //throw new Exception("Exception Test for Fault handling");
 
+        if (!_propertyMappingService.ValidMappingExist<AuthorDto, Author>(authorRecourseParameters.OrderBy))
+            return BadRequest();
+
         //var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(mainCategory, searchQuery); 
         var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(authorRecourseParameters);
         //var == PagedList<Entities.Author>
-        
+
         string? previousPageLink = authorsFromRepo.HasPrevious ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.PreviousPage) : null;
         string? nextPageLink = authorsFromRepo.HasNext ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.NextPage) : null;
 

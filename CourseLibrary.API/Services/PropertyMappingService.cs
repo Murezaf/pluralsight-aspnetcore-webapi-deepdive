@@ -29,4 +29,25 @@ public class PropertyMappingService : IPropertyMappingService
 
         throw new Exception($"Cannot find exact property mapping instance for <{typeof(TSource)}, {typeof(TDestination)}>.");
     }
+
+    public bool ValidMappingExist<TSource, TDestination>(string fields)
+    {
+        Dictionary<string, PropertyMappingValue> propertyMapping = GetPropertyMapping<AuthorDto, Author>();
+
+        if(string.IsNullOrWhiteSpace(fields)) return true;
+
+        string[] fieldsAfterSplit = fields.Split(',');
+        foreach (string field in fieldsAfterSplit)
+        {
+            string trimmedField = field.Trim();
+            
+            int indexOfFirstSpace = trimmedField.IndexOf(' ');
+            string propertyName = (indexOfFirstSpace == -1) ? trimmedField : trimmedField.Remove(indexOfFirstSpace);
+
+            if(!propertyMapping.ContainsKey(propertyName))
+                return false;
+        }
+    
+        return true;
+    }
 }

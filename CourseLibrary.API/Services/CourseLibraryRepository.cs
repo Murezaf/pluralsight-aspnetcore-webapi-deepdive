@@ -1,6 +1,7 @@
 ﻿using CourseLibrary.API.DbContexts;
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
+using CourseLibrary.API.Models;
 using CourseLibrary.API.ResourceParameters;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,10 +10,12 @@ namespace CourseLibrary.API.Services;
 public class CourseLibraryRepository : ICourseLibraryRepository
 {
     private readonly CourseLibraryContext _context;
+    private readonly IPropertyMappingService _propertyMappingService;
 
-    public CourseLibraryRepository(CourseLibraryContext context)
+    public CourseLibraryRepository(CourseLibraryContext context, IPropertyMappingService propertyMappingService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _propertyMappingService = propertyMappingService ?? throw new Exception(nameof(propertyMappingService));
     }
 
     public void AddCourse(Guid authorId, Course course)
@@ -211,6 +214,44 @@ public class CourseLibraryRepository : ICourseLibraryRepository
     //    return await collection.ToListAsync();
     //}
 
+    //public async Task<PagedList<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    //{
+    //    if (authorRecourseParameters == null)
+    //        throw new NullReferenceException(nameof(authorRecourseParameters));
+
+    //    //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    //    return await GetAuthorsAsync(); //Paging should happen anyway
+
+    //    IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+    //    {
+    //        string mainCategory = authorRecourseParameters.MainCategory.Trim();
+    //        collection = collection.Where(a => a.MainCategory == mainCategory);
+    //    }
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    {
+    //        string searchQuery = authorRecourseParameters.SearchQuery.Trim();
+    //        collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+    //    }
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.OrderBy))
+    //    {
+    //        if (authorRecourseParameters.OrderBy.ToLowerInvariant() == "name") //Can't write this such code for each parameter and their combination all have asc and desc as an option
+    //        {
+    //            string orderBy = authorRecourseParameters.OrderBy.Trim();
+    //            collection = collection.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
+    //        }
+    //    }
+
+    //    //Add Paging
+    //    //collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
+    //    //.Take(authorRecourseParameters.PageSize);
+
+    //    return await PagedList<Author>.CreateAsync(collection, authorRecourseParameters.PageNumber, authorRecourseParameters.PageSize); //paging logic happens inside CreateAsync method. no need to apply here.
+    //}
+
     public async Task<PagedList<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
     {
         if (authorRecourseParameters == null)
@@ -235,11 +276,15 @@ public class CourseLibraryRepository : ICourseLibraryRepository
 
         if (!string.IsNullOrWhiteSpace(authorRecourseParameters.OrderBy))
         {
-            if (authorRecourseParameters.OrderBy.ToLowerInvariant() == "name") //Can't write this such code for each parameter and their combination all have asc and desc as an option
-            {
-                string orderBy = authorRecourseParameters.OrderBy.Trim();
-                collection = collection.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
-            }
+            //if (authorRecourseParameters.OrderBy.ToLowerInvariant() == "name") //Can't write this such code for each parameter and their combination all have asc and desc as an option
+            //{
+            //    string orderBy = authorRecourseParameters.OrderBy.Trim();
+            //    collection = collection.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
+            //}
+
+            Dictionary<string, PropertyMappingValue> authorPropertyMappingDictionary = _propertyMappingService.GetPropertyMapping<AuthorDto, Author>();
+
+            collection = collection.ApplySort(authorRecourseParameters.OrderBy, authorPropertyMappingDictionary);
         }
 
         //Add Paging
