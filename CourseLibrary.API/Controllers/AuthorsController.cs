@@ -109,12 +109,13 @@ public class AuthorsController : ControllerBase
 
         //return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
         IEnumerable<AuthorDto> authorsDtoToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo);
-        IEnumerable<System.Dynamic.ExpandoObject> authorsDtoShapedToReturn = authorsDtoToReturn.ShapeData(authorRecourseParameters.Fields);
-        return Ok(authorsDtoShapedToReturn);
+        IEnumerable<System.Dynamic.ExpandoObject> authorsDtoDataShapedToReturn = authorsDtoToReturn.ShapeData(authorRecourseParameters.Fields);
+        return Ok(authorsDtoDataShapedToReturn);
     }
 
     [HttpGet("{authorId}", Name = "GetAuthor")]
-    public async Task<ActionResult<AuthorDto>> GetAuthor(Guid authorId)
+    //public async Task<ActionResult<AuthorDto>> GetAuthor(Guid authorId)
+    public async Task<IActionResult> GetAuthor(Guid authorId, string? fields)
     {
         var authorFromRepo = await _courseLibraryRepository.GetAuthorAsync(authorId);
 
@@ -123,7 +124,9 @@ public class AuthorsController : ControllerBase
             return NotFound();
         }
 
-        return Ok(_mapper.Map<AuthorDto>(authorFromRepo));
+        AuthorDto authorDtoToReturn = _mapper.Map<AuthorDto>(authorFromRepo);
+        System.Dynamic.ExpandoObject authorDtoDataShapedToReturn = authorDtoToReturn.ShapeData(fields);
+        return Ok(authorDtoDataShapedToReturn);
     }
 
     [HttpPost]
