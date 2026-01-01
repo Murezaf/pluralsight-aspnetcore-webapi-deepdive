@@ -43,7 +43,9 @@ public class AuthorsController : ControllerBase
                        pageNumber = authorRecourseParameters.PageNumber + 1,
                        pageSize = authorRecourseParameters.PageSize,
 
-                       orderBy = authorRecourseParameters.OrderBy
+                       orderBy = authorRecourseParameters.OrderBy,
+
+                       fields = authorRecourseParameters.Fields
                    });
             case ResorceUriType.PreviousPage:
                 return Url.Link("GetAuthors",
@@ -54,7 +56,9 @@ public class AuthorsController : ControllerBase
                         pageNumber = authorRecourseParameters.PageNumber - 1,
                         pageSize = authorRecourseParameters.PageSize,
 
-                        orderBy = authorRecourseParameters.OrderBy
+                        orderBy = authorRecourseParameters.OrderBy,
+
+                        fields = authorRecourseParameters.Fields
                     });
             default:
                 return Url.Link("GetAuthors",
@@ -65,7 +69,9 @@ public class AuthorsController : ControllerBase
                         pageNumber = authorRecourseParameters.PageNumber,
                         pageSize = authorRecourseParameters.PageSize,
 
-                        orderBy = authorRecourseParameters.OrderBy
+                        orderBy = authorRecourseParameters.OrderBy,
+
+                        fields = authorRecourseParameters.Fields
                     });
         }
     }
@@ -74,7 +80,8 @@ public class AuthorsController : ControllerBase
     [HttpHead]
     //public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors([FromQuery(Name = "category")] string? mainCategory = "")
     //public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors(string? mainCategory = "", string? searchQuery = "")
-    public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors([FromQuery] AuthorRecourseParameters authorRecourseParameters)
+    //public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors([FromQuery] AuthorRecourseParameters authorRecourseParameters)
+    public async Task<IActionResult> GetAuthors([FromQuery] AuthorRecourseParameters authorRecourseParameters)
     {
         //throw new Exception("Exception Test for Fault handling");
 
@@ -100,7 +107,10 @@ public class AuthorsController : ControllerBase
 
         Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(paginationMetaData));
 
-        return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
+        //return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
+        IEnumerable<AuthorDto> authorsDtoToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo);
+        IEnumerable<System.Dynamic.ExpandoObject> authorsDtoShapedToReturn = authorsDtoToReturn.ShapeData(authorRecourseParameters.Fields);
+        return Ok(authorsDtoShapedToReturn);
     }
 
     [HttpGet("{authorId}", Name = "GetAuthor")]
