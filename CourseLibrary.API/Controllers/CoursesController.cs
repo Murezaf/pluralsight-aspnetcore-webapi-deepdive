@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Models;
-using CourseLibrary.API.Services;
+using CourseLibrary.API.Repositories.Interfaces;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -15,14 +15,17 @@ namespace CourseLibrary.API.Controllers;
 [Route("api/authors/{authorId}/courses")]
 public class CoursesController : ControllerBase
 {
-    private readonly ICourseLibraryRepository _courseLibraryRepository;
+    private readonly ICourseRepository _courseRepository;
+    private readonly IAuthorRepository _authorRepository;
     private readonly IMapper _mapper;
 
-    public CoursesController(ICourseLibraryRepository courseLibraryRepository,
+    public CoursesController(ICourseRepository courseRepository, IAuthorRepository authorRepository,
         IMapper mapper)
     {
-        _courseLibraryRepository = courseLibraryRepository ??
-            throw new ArgumentNullException(nameof(courseLibraryRepository));
+        _courseRepository = courseRepository ??
+            throw new ArgumentNullException(nameof(courseRepository));
+        _authorRepository = authorRepository ??
+            throw new ArgumentNullException(nameof(authorRepository));
         _mapper = mapper ??
             throw new ArgumentNullException(nameof(mapper));
     }
@@ -30,29 +33,30 @@ public class CoursesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CourseDto>>> GetCoursesForAuthor(Guid authorId)
     {
-        if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
+        if (!await _authorRepository.AuthorExistsAsync(authorId))
         {
             return NotFound();
         }
 
-        var coursesForAuthorFromRepo = await _courseLibraryRepository.GetCoursesAsync(authorId);
+        var coursesForAuthorFromRepo = await _courseRepository.GetCoursesAsync(authorId);
         return Ok(_mapper.Map<IEnumerable<CourseDto>>(coursesForAuthorFromRepo));
     }
 
     [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
     public async Task<ActionResult<CourseDto>> GetCourseForAuthor(Guid authorId, Guid courseId)
     {
-        if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
+        if (!await _authorRepository.AuthorExistsAsync(authorId))
         {
             return NotFound();
         }
 
-        var courseForAuthorFromRepo = await _courseLibraryRepository.GetCourseAsync(authorId, courseId);
+        var courseForAuthorFromRepo = await _courseRepository.GetCourseAsync(authorId, courseId);
 
         if (courseForAuthorFromRepo == null)
         {
             return NotFound();
         }
+
         return Ok(_mapper.Map<CourseDto>(courseForAuthorFromRepo));
     }
 
@@ -60,14 +64,15 @@ public class CoursesController : ControllerBase
     public async Task<ActionResult<CourseDto>> CreateCourseForAuthor(
             Guid authorId, CourseForCreationDto course)
     {
-        if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
+        if (!await _authorRepository.AuthorExistsAsync(authorId))
         {
             return NotFound();
         }
 
         var courseEntity = _mapper.Map<Entities.Course>(course);
-        _courseLibraryRepository.AddCourse(authorId, courseEntity);
-        await _courseLibraryRepository.SaveAsync();
+
+        _courseRepository.AddCourse(authorId, courseEntity);
+        await _courseRepository.SaveAsync();
 
         var courseToReturn = _mapper.Map<CourseDto>(courseEntity);
 
@@ -82,12 +87,12 @@ public class CoursesController : ControllerBase
     [HttpPut("{courseId}")]
     public async Task<IActionResult> UpdateCourseForAuthor(Guid authorId, Guid courseId, CourseForCreationDto updatedCourse)
     {
-        if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
+        if (!await _authorRepository.AuthorExistsAsync(authorId))
         {
             return NotFound();
         }
 
-        Course courseToUpdateEntity = await _courseLibraryRepository.GetCourseAsync(authorId, courseId);
+        Course courseToUpdateEntity = await _courseRepository.GetCourseAsync(authorId, courseId);
 
         //if (courseToUpdateEntity == null)
         //{
@@ -98,8 +103,8 @@ public class CoursesController : ControllerBase
             Course courseToAddEntity = _mapper.Map<Course>(updatedCourse);
             courseToAddEntity.Id = courseId;
 
-            _courseLibraryRepository.AddCourse(authorId, courseToAddEntity);
-            await _courseLibraryRepository.SaveAsync();
+            _courseRepository.AddCourse(authorId, courseToAddEntity);
+            await _courseRepository.SaveAsync();
 
             CourseDto returningCourse = _mapper.Map<CourseDto>(courseToAddEntity);
 
@@ -110,21 +115,21 @@ public class CoursesController : ControllerBase
 
         _mapper.Map(updatedCourse, courseToUpdateEntity);
 
-        _courseLibraryRepository.UpdateCourse(courseToUpdateEntity); //No implementation needed
-
-        await _courseLibraryRepository.SaveAsync();
+        await _courseRepository.SaveAsync();
+        //Changes are made to the tracked entity in memory. EF Core detects these modifications via change tracking.
+        //Until SaveAsync is called, there is no interaction with the database.
+        //aside from loading the entity(GetCourseAsync) and saving changes(SaveAsync), the repository is not involved.
 
         return NoContent();
     }
 
     [HttpPatch("{courseId}")]
-    public async Task<IActionResult> PartiallyUpdateCourseForAuthor(
-        Guid authorId, Guid courseId, JsonPatchDocument<CourseForUpdateDto> patchDocument)
+    public async Task<IActionResult> PartiallyUpdateCourseForAuthor(Guid authorId, Guid courseId, JsonPatchDocument<CourseForUpdateDto> patchDocument)
     {
-        if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
+        if (!await _authorRepository.AuthorExistsAsync(authorId))
             return NotFound();
 
-        Course courseToUpdateEntity = await _courseLibraryRepository.GetCourseAsync(authorId, courseId);
+        Course courseToUpdateEntity = await _courseRepository.GetCourseAsync(authorId, courseId);
 
         //if (courseToUpdateEntity == null)
         //    return NotFound();
@@ -141,8 +146,8 @@ public class CoursesController : ControllerBase
             Course courseToAddEntity = _mapper.Map<Course>(courseForUpdateDto);
             courseToAddEntity.Id = courseId;
 
-            _courseLibraryRepository.AddCourse(authorId, courseToAddEntity);
-            await _courseLibraryRepository.SaveAsync();
+            _courseRepository.AddCourse(authorId, courseToAddEntity);
+            await _courseRepository.SaveAsync();
 
             CourseDto returningCourse = _mapper.Map<CourseDto>(courseToAddEntity);
 
@@ -161,8 +166,7 @@ public class CoursesController : ControllerBase
 
         _mapper.Map(courseToPatch, courseToUpdateEntity);
 
-        _courseLibraryRepository.UpdateCourse(courseToUpdateEntity);
-        await _courseLibraryRepository.SaveAsync();
+        await _courseRepository.SaveAsync();
 
         return NoContent();
     }
@@ -170,20 +174,20 @@ public class CoursesController : ControllerBase
     [HttpDelete("{courseId}")]
     public async Task<ActionResult> DeleteCourseForAuthor(Guid authorId, Guid courseId)
     {
-        if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
+        if (!await _authorRepository.AuthorExistsAsync(authorId))
         {
             return NotFound();
         }
 
-        var courseForAuthorFromRepo = await _courseLibraryRepository.GetCourseAsync(authorId, courseId);
+        var courseForAuthorFromRepo = await _courseRepository.GetCourseAsync(authorId, courseId);
 
         if (courseForAuthorFromRepo == null)
         {
             return NotFound();
         }
 
-        _courseLibraryRepository.DeleteCourse(courseForAuthorFromRepo);
-        await _courseLibraryRepository.SaveAsync();
+        _courseRepository.DeleteCourse(courseForAuthorFromRepo);
+        await _courseRepository.SaveAsync();
 
         return NoContent();
     }

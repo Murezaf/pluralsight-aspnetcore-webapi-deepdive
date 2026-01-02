@@ -2,6 +2,8 @@
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
+using CourseLibrary.API.Repositories;
+using CourseLibrary.API.Repositories.Interfaces;
 using CourseLibrary.API.ResourceParameters;
 using CourseLibrary.API.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -14,19 +16,23 @@ namespace CourseLibrary.API.Controllers;
 [Route("api/authors")]
 public class AuthorsController : ControllerBase
 {
-    private readonly ICourseLibraryRepository _courseLibraryRepository;
+    //private readonly ICourseLibraryRepository _courseLibraryRepository;
+    private readonly IAuthorRepository _authorRepository;
     private readonly IMapper _mapper;
     private readonly IPropertyMappingService _propertyMappingService;
     private readonly IPropertyCheckerService _propertyCheckerService;
     private readonly ProblemDetailsFactory _problemDetailsFactory;
 
     public AuthorsController(
-        ICourseLibraryRepository courseLibraryRepository, IMapper mapper,
+        //ICourseLibraryRepository courseLibraryRepository,
+        IAuthorRepository authorRepository, IMapper mapper,
         IPropertyMappingService propertyMappingService, IPropertyCheckerService propertyCheckerService,
         ProblemDetailsFactory problemDetailsFactory)
     {
-        _courseLibraryRepository = courseLibraryRepository ??
-            throw new ArgumentNullException(nameof(courseLibraryRepository));
+        //_courseLibraryRepository = courseLibraryRepository ??
+        //    throw new ArgumentNullException(nameof(courseLibraryRepository));
+        _authorRepository = authorRepository ??
+            throw new ArgumentNullException(nameof(authorRepository));
         _mapper = mapper ??
             throw new ArgumentNullException(nameof(mapper));
         _propertyMappingService = propertyMappingService ??
@@ -54,6 +60,7 @@ public class AuthorsController : ControllerBase
 
                        fields = authorRecourseParameters.Fields
                    });
+
             case ResorceUriType.PreviousPage:
                 return Url.Link("GetAuthors",
                     new
@@ -67,6 +74,7 @@ public class AuthorsController : ControllerBase
 
                         fields = authorRecourseParameters.Fields
                     });
+
             default:
                 return Url.Link("GetAuthors",
                     new
@@ -95,17 +103,17 @@ public class AuthorsController : ControllerBase
         if (!_propertyMappingService.ValidMappingExist<AuthorDto, Author>(authorRecourseParameters.OrderBy))
             return BadRequest();
 
-        if(!_propertyCheckerService.TypeHasProperties<AuthorDto>(authorRecourseParameters.Fields))
+        if (!_propertyCheckerService.TypeHasProperties<AuthorDto>(authorRecourseParameters.Fields))
         {
             return BadRequest(
                 _problemDetailsFactory.CreateProblemDetails(HttpContext,
-                statusCode : 400,
-                detail : $"Not all requested data shaping fields exist on the resource: {authorRecourseParameters.Fields}"
+                statusCode: 400,
+                detail: $"Not all requested data shaping fields exist on the resource: {authorRecourseParameters.Fields}"
                 ));
         }
 
         //var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(mainCategory, searchQuery); 
-        var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(authorRecourseParameters);
+        var authorsFromRepo = await _authorRepository.GetAuthorsAsync(authorRecourseParameters);
         //var == PagedList<Entities.Author>
 
         string? previousPageLink = authorsFromRepo.HasPrevious ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.PreviousPage) : null;
@@ -142,7 +150,7 @@ public class AuthorsController : ControllerBase
                 ));
         }
 
-        var authorFromRepo = await _courseLibraryRepository.GetAuthorAsync(authorId);
+        var authorFromRepo = await _authorRepository.GetAuthorAsync(authorId);
 
         if (authorFromRepo == null)
         {
@@ -159,8 +167,8 @@ public class AuthorsController : ControllerBase
     {
         var authorEntity = _mapper.Map<Entities.Author>(author);
 
-        _courseLibraryRepository.AddAuthor(authorEntity);
-        await _courseLibraryRepository.SaveAsync();
+        _authorRepository.AddAuthor(authorEntity);
+        await _authorRepository.SaveAsync();
 
         var authorToReturn = _mapper.Map<AuthorDto>(authorEntity); //There is no need to map from AuthorForCreationDto to AuthorDto and dealing with converting DateOfBirth to Age. This mapping is done indirectly and through the entity.
 

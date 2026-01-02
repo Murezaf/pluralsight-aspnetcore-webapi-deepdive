@@ -1,0 +1,298 @@
+﻿using CourseLibrary.API.DbContexts;
+using CourseLibrary.API.Entities;
+using CourseLibrary.API.Helpers;
+using CourseLibrary.API.Models;
+using CourseLibrary.API.Repositories.Interfaces;
+using CourseLibrary.API.ResourceParameters;
+using CourseLibrary.API.Services;
+using Microsoft.EntityFrameworkCore;
+
+namespace CourseLibrary.API.Repositories.Implementations;
+
+public class CourseLibraryRepository : ICourseLibraryRepository
+{
+    private readonly CourseLibraryContext _context;
+    private readonly IPropertyMappingService _propertyMappingService;
+
+    public CourseLibraryRepository(CourseLibraryContext context, IPropertyMappingService propertyMappingService)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _propertyMappingService = propertyMappingService ?? throw new Exception(nameof(propertyMappingService));
+    }
+
+    public void AddCourse(Guid authorId, Course course)
+    {
+        if (authorId == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(authorId));
+        }
+
+        if (course == null)
+        {
+            throw new ArgumentNullException(nameof(course));
+        }
+
+        // always set the AuthorId to the passed-in authorId
+        course.AuthorId = authorId;
+        _context.Courses.Add(course);
+    }
+
+    public void DeleteCourse(Course course)
+    {
+        _context.Courses.Remove(course);  
+    }
+
+    public async Task<Course> GetCourseAsync(Guid authorId, Guid courseId)
+    {
+        if (authorId == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(authorId));
+        }
+
+        if (courseId == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(courseId));
+        }
+
+#pragma warning disable CS8603 // Possible null reference return.
+        return await _context.Courses
+          .Where(c => c.AuthorId == authorId && c.Id == courseId).FirstOrDefaultAsync();
+#pragma warning restore CS8603 // Possible null reference return.
+    }
+
+    public async Task<IEnumerable<Course>> GetCoursesAsync(Guid authorId)
+    {
+        if (authorId == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(authorId));
+        }
+
+        return await _context.Courses
+                    .Where(c => c.AuthorId == authorId)
+                    .OrderBy(c => c.Title).ToListAsync();
+    }
+
+    public void UpdateCourse(Course course)
+    {
+        // no code in this implementation
+    }
+
+    public void AddAuthor(Author author)
+    {
+        if (author == null)
+        {
+            throw new ArgumentNullException(nameof(author));
+        }
+
+        author.Id = Guid.NewGuid();
+
+        foreach (var course in author.Courses)
+        {
+            course.Id = Guid.NewGuid();
+        }
+
+        _context.Authors.Add(author);
+    }
+
+    public async Task<bool> AuthorExistsAsync(Guid authorId)
+    {
+        if (authorId == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(authorId));
+        }
+
+        return await _context.Authors.AnyAsync(a => a.Id == authorId);
+    }
+
+    public void DeleteAuthor(Author author)
+    {
+        if (author == null)
+        {
+            throw new ArgumentNullException(nameof(author));
+        }
+
+        _context.Authors.Remove(author);
+    }
+
+    public async Task<Author> GetAuthorAsync(Guid authorId)
+    {
+        if (authorId == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(authorId));
+        }
+
+#pragma warning disable CS8603 // Possible null reference return.
+        return await _context.Authors.FirstOrDefaultAsync(a => a.Id == authorId);
+#pragma warning restore CS8603 // Possible null reference return.
+    }
+
+    public async Task<IEnumerable<Author>> GetAuthorsAsync()
+    {
+        return await _context.Authors.ToListAsync();
+    }
+
+    public async Task<IEnumerable<Author>> GetAuthorsAsync(IEnumerable<Guid> authorIds)
+    {
+        if (authorIds == null)
+        {
+            throw new ArgumentNullException(nameof(authorIds));
+        }
+
+        return await _context.Authors.Where(a => authorIds.Contains(a.Id))
+            .OrderBy(a => a.FirstName)
+            .OrderBy(a => a.LastName)
+            .ToListAsync();
+    }
+
+    public void UpdateAuthor(Author author)
+    {
+        // no code in this implementation
+    }
+
+    public async Task<bool> SaveAsync()
+    {
+        return await _context.SaveChangesAsync() >= 0;
+    }
+
+
+    //public async Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "")
+    //{
+    //    if(string.IsNullOrWhiteSpace(mainCategory))
+    //        return await GetAuthorsAsync();
+
+    //    mainCategory = mainCategory.Trim();
+
+    //    return await _context.Authors.Where(a => a.MainCategory == mainCategory).ToListAsync();
+    //}
+
+    //public async Task<IEnumerable<Author>> GetAuthorsAsync(string? mainCategory = "", string? searchQuery = "")
+    //{
+    //    if (string.IsNullOrWhiteSpace(mainCategory) && string.IsNullOrWhiteSpace(searchQuery))
+    //        return await GetAuthorsAsync();
+
+    //    IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+    //    if(!string.IsNullOrWhiteSpace(mainCategory))
+    //    {
+    //        mainCategory = mainCategory.Trim();
+    //        collection = collection.Where(a => a.MainCategory == mainCategory);
+    //    }
+
+    //    if(!string.IsNullOrWhiteSpace(searchQuery))
+    //    {
+    //        searchQuery = searchQuery.Trim();
+    //        collection = collection.Where(a => a.FirstName.Contains(searchQuery) ||  a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+    //    }
+
+    //    return await collection.ToListAsync();
+    //}
+
+    //public async Task<IEnumerable<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    //{
+    //    if (authorRecourseParameters == null)
+    //        throw new NullReferenceException(nameof(authorRecourseParameters));
+
+    //    //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    //    return await GetAuthorsAsync(); //Paging should happen anyway
+
+    //    IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+    //    {
+    //        string mainCategory = authorRecourseParameters.MainCategory.Trim();
+    //        collection = collection.Where(a => a.MainCategory == mainCategory);
+    //    }
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    {
+    //        string searchQuery = authorRecourseParameters.SearchQuery.Trim();
+    //        collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+    //    }
+
+    //    //Add Paging
+    //    collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
+    //        .Take(authorRecourseParameters.PageSize);
+
+    //    return await collection.ToListAsync();
+    //}
+
+    //public async Task<PagedList<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    //{
+    //    if (authorRecourseParameters == null)
+    //        throw new NullReferenceException(nameof(authorRecourseParameters));
+
+    //    //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    //    return await GetAuthorsAsync(); //Paging should happen anyway
+
+    //    IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+    //    {
+    //        string mainCategory = authorRecourseParameters.MainCategory.Trim();
+    //        collection = collection.Where(a => a.MainCategory == mainCategory);
+    //    }
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+    //    {
+    //        string searchQuery = authorRecourseParameters.SearchQuery.Trim();
+    //        collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+    //    }
+
+    //    if (!string.IsNullOrWhiteSpace(authorRecourseParameters.OrderBy))
+    //    {
+    //        if (authorRecourseParameters.OrderBy.ToLowerInvariant() == "name") //Can't write this such code for each parameter and their combination all have asc and desc as an option
+    //        {
+    //            string orderBy = authorRecourseParameters.OrderBy.Trim();
+    //            collection = collection.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
+    //        }
+    //    }
+
+    //    //Add Paging
+    //    //collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
+    //    //.Take(authorRecourseParameters.PageSize);
+
+    //    return await PagedList<Author>.CreateAsync(collection, authorRecourseParameters.PageNumber, authorRecourseParameters.PageSize); //paging logic happens inside CreateAsync method. no need to apply here.
+    //}
+
+    public async Task<PagedList<Author>> GetAuthorsAsync(AuthorRecourseParameters authorRecourseParameters)
+    {
+        if (authorRecourseParameters == null)
+            throw new NullReferenceException(nameof(authorRecourseParameters));
+
+        //if (string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory) && string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+        //    return await GetAuthorsAsync(); //Paging should happen anyway
+
+        IQueryable<Author> collection = _context.Authors as IQueryable<Author>;
+
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.MainCategory))
+        {
+            string mainCategory = authorRecourseParameters.MainCategory.Trim();
+            collection = collection.Where(a => a.MainCategory == mainCategory);
+        }
+
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.SearchQuery))
+        {
+            string searchQuery = authorRecourseParameters.SearchQuery.Trim();
+            collection = collection.Where(a => a.FirstName.Contains(searchQuery) || a.LastName.Contains(searchQuery) || a.MainCategory.Contains(searchQuery));
+        }
+
+        if (!string.IsNullOrWhiteSpace(authorRecourseParameters.OrderBy))
+        {
+            //if (authorRecourseParameters.OrderBy.ToLowerInvariant() == "name") //Can't write this such code for each parameter and their combination all have asc and desc as an option
+            //{
+            //    string orderBy = authorRecourseParameters.OrderBy.Trim();
+            //    collection = collection.OrderBy(a => a.FirstName).ThenBy(a => a.LastName);
+            //}
+
+            Dictionary<string, PropertyMappingValue> authorPropertyMappingDictionary = _propertyMappingService.GetPropertyMapping<AuthorDto, Author>();
+
+            collection = collection.ApplySort(authorRecourseParameters.OrderBy, authorPropertyMappingDictionary);
+        }
+
+        //Add Paging
+        //collection = collection.Skip((authorRecourseParameters.PageNumber - 1) * authorRecourseParameters.PageSize)
+        //.Take(authorRecourseParameters.PageSize);
+
+        return await PagedList<Author>.CreateAsync(collection, authorRecourseParameters.PageNumber, authorRecourseParameters.PageSize); //paging logic happens inside CreateAsync method. no need to apply here.
+    }
+}

@@ -9,17 +9,17 @@ public class CourseTitleMustBeDifferentFromDescriptionAttribute : ValidationAttr
 
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        //var manipulationCourse = validationContext.ObjectInstance as CourseForManipulationDto;
+        CourseForManipulationDto? manipulationCourse = validationContext.ObjectInstance as CourseForManipulationDto;
 
-        //if (manipulationCourse == null)
-        //{
-            //throw new Exception($"Attribute {nameof(CourseTitleMustBeDifferentFromDescriptionAttribute)} must be applied to a {nameof(CourseForManipulationDto)} or derrived type.");
-        //}
-
-        if (validationContext.ObjectInstance is not CourseForManipulationDto manipulationCourse)
+        if (manipulationCourse == null)
         {
-            throw new Exception($"Attribute {nameof(CourseTitleMustBeDifferentFromDescriptionAttribute)} must be applied to a {nameof(CourseForManipulationDto)} or derrived type.");
+            return ValidationResult.Success;
         }
+
+        //if (validationContext.ObjectInstance is not CourseForManipulationDto manipulationCourse)
+        //{
+        //    return ValidationResult.Success;
+        //}
 
         if (manipulationCourse.Title == manipulationCourse.Description)
         {

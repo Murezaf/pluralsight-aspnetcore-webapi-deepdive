@@ -2,7 +2,7 @@
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
-using CourseLibrary.API.Services;
+using CourseLibrary.API.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseLibrary.API.Controllers
@@ -11,12 +11,13 @@ namespace CourseLibrary.API.Controllers
     [Route("api/authorcollections")]
     public class AuthorCollectionsController : ControllerBase
     {
-        private readonly ICourseLibraryRepository _courseLibraryRepository;
+        //private readonly ICourseLibraryRepository _courseLibraryRepository;
+        private readonly IAuthorRepository _authorRepository;
         private readonly IMapper _mapper;
 
-        public AuthorCollectionsController(ICourseLibraryRepository courseLibraryRepository, IMapper mapper)
+        public AuthorCollectionsController(ICourseRepository courseRepository, IAuthorRepository authorRepository, IMapper mapper)
         {
-            _courseLibraryRepository = courseLibraryRepository ?? throw new ArgumentNullException(nameof(courseLibraryRepository));
+            _authorRepository = authorRepository ?? throw new ArgumentNullException(nameof(authorRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -26,7 +27,7 @@ namespace CourseLibrary.API.Controllers
             [ModelBinder(BinderType = typeof(ArrayModelBinder))]
             IEnumerable<Guid> authorIds)
         {
-            IEnumerable<Author> authorEntities = await _courseLibraryRepository.GetAuthorsAsync(authorIds);
+            IEnumerable<Author> authorEntities = await _authorRepository.GetAuthorsAsync(authorIds);
 
             if (authorEntities.Count() != authorIds.Count())
                 return NotFound();
@@ -43,10 +44,10 @@ namespace CourseLibrary.API.Controllers
 
             foreach (Author author in authorsEntities)
             {
-                _courseLibraryRepository.AddAuthor(author);
+                _authorRepository.AddAuthor(author);
             }
 
-            await _courseLibraryRepository.SaveAsync();
+            await _authorRepository.SaveAsync();
 
             IEnumerable<AuthorDto> authorCollectionToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorsEntities);
             string authorIdsString = string.Join(",", authorCollectionToReturn.Select(a => a.Id));
