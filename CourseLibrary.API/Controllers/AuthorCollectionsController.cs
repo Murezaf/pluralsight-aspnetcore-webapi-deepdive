@@ -1,8 +1,11 @@
 ﻿using AutoMapper;
+using CourseLibrary.API.Application.AuthorCollections.Commands;
+using CourseLibrary.API.Application.AuthorCollections.Queries;
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
 using CourseLibrary.API.Repositories.Interfaces;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseLibrary.API.Controllers
@@ -12,13 +15,13 @@ namespace CourseLibrary.API.Controllers
     public class AuthorCollectionsController : ControllerBase
     {
         //private readonly ICourseLibraryRepository _courseLibraryRepository;
-        private readonly IAuthorRepository _authorRepository;
-        private readonly IMapper _mapper;
+        //private readonly IAuthorRepository _authorRepository;
+        //private readonly IMapper _mapper;
+        private readonly IMediator _mediator;
 
-        public AuthorCollectionsController(ICourseRepository courseRepository, IAuthorRepository authorRepository, IMapper mapper)
+        public AuthorCollectionsController(IMediator mediator)
         {
-            _authorRepository = authorRepository ?? throw new ArgumentNullException(nameof(authorRepository));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         }
 
         [HttpGet("({authorIds})", Name = "GetAuthorCollection")]
@@ -27,29 +30,38 @@ namespace CourseLibrary.API.Controllers
             [ModelBinder(BinderType = typeof(ArrayModelBinder))]
             IEnumerable<Guid> authorIds)
         {
-            IEnumerable<Author> authorEntities = await _authorRepository.GetAuthorsAsync(authorIds);
+            //IEnumerable<Author> authorEntities = await _authorRepository.GetAuthorsAsync(authorIds);
 
-            if (authorEntities.Count() != authorIds.Count())
+            //if (authorEntities.Count() != authorIds.Count())
+            //    return NotFound();
+
+            //IEnumerable<AuthorDto> authorsToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorEntities);
+
+            var authorsToReturn = await _mediator.Send(new GetAuthorCollectionQuery(authorIds));
+
+            if (authorsToReturn == null)
                 return NotFound();
-
-            IEnumerable<AuthorDto> authorsToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorEntities);
 
             return Ok(authorsToReturn);
         }
 
         [HttpPost]
-        public async Task<ActionResult<IEnumerable<AuthorDto>>> CreateAuthorCollection(IEnumerable<AuthorForCreationDto> authorCollection)
+        public async Task<ActionResult<IEnumerable<AuthorDto>>> CreateAuthorCollection(IEnumerable<AuthorForCreationDto> authorForCreationCollection)
         {
-            IEnumerable<Author> authorsEntities = _mapper.Map<IEnumerable<Author>>(authorCollection);
+            //IEnumerable<Author> authorsEntities = _mapper.Map<IEnumerable<Author>>(authorForCreationCollection);
 
-            foreach (Author author in authorsEntities)
-            {
-                _authorRepository.AddAuthor(author);
-            }
+            //foreach (Author author in authorsEntities)
+            //{
+            //    _authorRepository.AddAuthor(author);
+            //}
 
-            await _authorRepository.SaveAsync();
+            //await _authorRepository.SaveAsync();
 
-            IEnumerable<AuthorDto> authorCollectionToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorsEntities);
+            //IEnumerable<AuthorDto> authorCollectionToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorsEntities);
+            //We have done these in the MediatR Handler
+
+            IEnumerable<AuthorDto> authorCollectionToReturn = await _mediator.Send(new CreateAuthorCollectionCommand(authorForCreationCollection));
+
             string authorIdsString = string.Join(",", authorCollectionToReturn.Select(a => a.Id));
 
             return CreatedAtRoute("GetAuthorCollection",
