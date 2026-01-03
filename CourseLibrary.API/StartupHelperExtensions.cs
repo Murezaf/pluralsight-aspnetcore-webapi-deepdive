@@ -2,10 +2,12 @@
 using CourseLibrary.API.Repositories.Implementations;
 using CourseLibrary.API.Repositories.Interfaces;
 using CourseLibrary.API.Services;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Serialization;
+using System.Reflection;
 
 namespace CourseLibrary.API;
 
@@ -59,6 +61,11 @@ internal static class StartupHelperExtensions
 
         builder.Services.AddAutoMapper(
             AppDomain.CurrentDomain.GetAssemblies());
+        
+        builder.Services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+        });
 
         return builder.Build();
     }

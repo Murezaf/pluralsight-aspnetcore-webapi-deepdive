@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using CourseLibrary.API.Application.Authors.Commands;
+using CourseLibrary.API.Application.Authors.Queries;
 using CourseLibrary.API.Entities;
 using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
@@ -6,9 +8,12 @@ using CourseLibrary.API.Repositories;
 using CourseLibrary.API.Repositories.Interfaces;
 using CourseLibrary.API.ResourceParameters;
 using CourseLibrary.API.Services;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using System.Dynamic;
 using System.Text.Json;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace CourseLibrary.API.Controllers;
 
@@ -18,6 +23,7 @@ public class AuthorsController : ControllerBase
 {
     //private readonly ICourseLibraryRepository _courseLibraryRepository;
     private readonly IAuthorRepository _authorRepository;
+    private readonly IMediator _mediator;
     private readonly IMapper _mapper;
     private readonly IPropertyMappingService _propertyMappingService;
     private readonly IPropertyCheckerService _propertyCheckerService;
@@ -25,7 +31,8 @@ public class AuthorsController : ControllerBase
 
     public AuthorsController(
         //ICourseLibraryRepository courseLibraryRepository,
-        IAuthorRepository authorRepository, IMapper mapper,
+        IAuthorRepository authorRepository, 
+        IMediator mediator, IMapper mapper,
         IPropertyMappingService propertyMappingService, IPropertyCheckerService propertyCheckerService,
         ProblemDetailsFactory problemDetailsFactory)
     {
@@ -33,6 +40,8 @@ public class AuthorsController : ControllerBase
         //    throw new ArgumentNullException(nameof(courseLibraryRepository));
         _authorRepository = authorRepository ??
             throw new ArgumentNullException(nameof(authorRepository));
+        _mediator = mediator ??
+            throw new ArgumentNullException(nameof(mediator));
         _mapper = mapper ??
             throw new ArgumentNullException(nameof(mapper));
         _propertyMappingService = propertyMappingService ??
@@ -113,18 +122,18 @@ public class AuthorsController : ControllerBase
         }
 
         //var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(mainCategory, searchQuery); 
-        var authorsFromRepo = await _authorRepository.GetAuthorsAsync(authorRecourseParameters);
-        //var == PagedList<Entities.Author>
+        //PagedList<Author> pagedAuthorsFromRepo = await _authorRepository.GetAuthorsAsync(authorRecourseParameters);
+        var pagedAuthors = await _mediator.Send(new GetAuthorsQuery(authorRecourseParameters));
 
-        string? previousPageLink = authorsFromRepo.HasPrevious ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.PreviousPage) : null;
-        string? nextPageLink = authorsFromRepo.HasNext ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.NextPage) : null;
+        string? previousPageLink = pagedAuthors.HasPrevious ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.PreviousPage) : null;
+        string? nextPageLink = pagedAuthors.HasNext ? CreateAuthorsResourceUri(authorRecourseParameters, ResorceUriType.NextPage) : null;
 
         var paginationMetaData = new //Anonymous Object 
         {
-            totalCount = authorsFromRepo.TotalCount,
-            pageSize = authorsFromRepo.PageSize,
-            pageNumber = authorsFromRepo.CurrentPage,
-            totalPages = authorsFromRepo.TotalPages,
+            totalCount = pagedAuthors.TotalCount,
+            pageSize = pagedAuthors.PageSize,
+            pageNumber = pagedAuthors.CurrentPage,
+            totalPages = pagedAuthors.TotalPages,
             nextPageLink = nextPageLink,
             previousPageLink = previousPageLink
         };
@@ -132,9 +141,13 @@ public class AuthorsController : ControllerBase
         Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(paginationMetaData));
 
         //return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
-        IEnumerable<AuthorDto> authorsDtoToReturn = _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo);
-        IEnumerable<System.Dynamic.ExpandoObject> authorsDtoDataShapedToReturn = authorsDtoToReturn.ShapeData(authorRecourseParameters.Fields);
-        return Ok(authorsDtoDataShapedToReturn);
+
+        //IEnumerable<AuthorDto> authorsDtoToReturn = _mapper.Map<IEnumerable<AuthorDto>>(pagedAuthorsFromRepo);
+        //IEnumerable<System.Dynamic.ExpandoObject> authorsDtoDataShapedToReturn = authorsDtoToReturn.ShapeData(authorRecourseParameters.Fields);
+        //return Ok(authorsDtoDataShapedToReturn);
+        //We have done these in the MediatR Handler
+
+        return Ok(pagedAuthors);
     }
 
     [HttpGet("{authorId}", Name = "GetAuthor")]
@@ -150,32 +163,43 @@ public class AuthorsController : ControllerBase
                 ));
         }
 
-        var authorFromRepo = await _authorRepository.GetAuthorAsync(authorId);
+        //Author authorFromRepo = await _authorRepository.GetAuthorAsync(authorId);
+        ExpandoObject shapedAuthorDto = await _mediator.Send(new GetAuthorByIdQuery(authorId, fields));
 
-        if (authorFromRepo == null)
+
+        //if (authorFromRepo == null)
+        //{
+        //    return NotFound();
+        //}
+        if (shapedAuthorDto == null)
         {
             return NotFound();
         }
 
-        AuthorDto authorDtoToReturn = _mapper.Map<AuthorDto>(authorFromRepo);
-        System.Dynamic.ExpandoObject authorDtoDataShapedToReturn = authorDtoToReturn.ShapeData(fields);
-        return Ok(authorDtoDataShapedToReturn);
+        //AuthorDto authorDtoToReturn = _mapper.Map<AuthorDto>(authorFromRepo);
+        //System.Dynamic.ExpandoObject authorDtoDataShapedToReturn = authorDtoToReturn.ShapeData(fields);
+        //return Ok(authorDtoDataShapedToReturn);
+        //We have done these in the MediatR Handler
+
+        return Ok(shapedAuthorDto);
     }
 
     [HttpPost]
-    public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorForCreationDto author)
+    public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorForCreationDto authorForCreationDto)
     {
-        var authorEntity = _mapper.Map<Entities.Author>(author);
+        //var authorEntity = _mapper.Map<Entities.Author>(authorForCreationDto);
 
-        _authorRepository.AddAuthor(authorEntity);
-        await _authorRepository.SaveAsync();
+        //_authorRepository.AddAuthor(authorEntity);
+        //await _authorRepository.SaveAsync();
 
-        var authorToReturn = _mapper.Map<AuthorDto>(authorEntity); //There is no need to map from AuthorForCreationDto to AuthorDto and dealing with converting DateOfBirth to Age. This mapping is done indirectly and through the entity.
+        //AuthorDto authorDtoToReturn = _mapper.Map<AuthorDto>(authorEntity); //There is no need to map from AuthorForCreationDto to AuthorDto and dealing with converting DateOfBirth to Age. This mapping is done indirectly and through the entity.
+
+        AuthorDto authorDtoToReturn = await _mediator.Send(new CreateAuthorCommand(authorForCreationDto));
 
         //201 Created:
         return CreatedAtRoute("GetAuthor",
-            new { authorId = authorToReturn.Id },
-            authorToReturn);
+            new { authorId = authorDtoToReturn.Id },
+            authorDtoToReturn);
     }
 
     [HttpOptions]
