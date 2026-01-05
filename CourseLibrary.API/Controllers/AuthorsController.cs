@@ -11,6 +11,7 @@ using CourseLibrary.API.Services;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Net.Http.Headers;
 using System.Dynamic;
 using System.Text.Json;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -72,7 +73,7 @@ public class AuthorsController : ControllerBase
                 detail: $"Not all requested data shaping fields exist on the resource: {authorRecourseParameters.Fields}"
                 ));
         }
-        
+
         //var authorsFromRepo = await _courseLibraryRepository.GetAuthorsAsync(mainCategory, searchQuery); 
         //PagedList<Author> pagedAuthorsFromRepo = await _authorRepository.GetAuthorsAsync(authorRecourseParameters);
         PagedList<ExpandoObject> shapedPagedAuthors = await _mediator.Send(new GetAuthorsQuery(authorRecourseParameters));
@@ -99,7 +100,7 @@ public class AuthorsController : ControllerBase
         //return Ok(authorsDtoDataShapedToReturn);
         //We have done these in the MediatR Handler
 
-        IEnumerable<LinkDto> links = CreateLinksForAuthors(authorRecourseParameters, 
+        IEnumerable<LinkDto> links = CreateLinksForAuthors(authorRecourseParameters,
             shapedPagedAuthors.HasNext, shapedPagedAuthors.HasPrevious);
 
         IEnumerable<IDictionary<string, object?>> shapedAuthorsWithLinks = shapedPagedAuthors.Select(author =>
@@ -187,8 +188,16 @@ public class AuthorsController : ControllerBase
 
     [HttpGet("{authorId}", Name = "GetAuthor")]
     //public async Task<ActionResult<AuthorDto>> GetAuthor(Guid authorId)
-    public async Task<IActionResult> GetAuthor(Guid authorId, string? fields)
+    //public async Task<IActionResult> GetAuthor(Guid authorId, string? fields)
+    public async Task<IActionResult> GetAuthor(Guid authorId, string? fields,
+        [FromHeader(Name = "Accept")] string? mediaType)
     {
+        if (!MediaTypeHeaderValue.TryParse(mediaType, out var parsedMediaType))
+        {
+            return BadRequest(_problemDetailsFactory.CreateProblemDetails(HttpContext,
+                statusCode: 400, detail: "Accept header media type is not a valid media type."));
+        }
+
         if (!_propertyCheckerService.TypeHasProperties<AuthorDto>(fields))
         {
             return BadRequest(
@@ -216,13 +225,17 @@ public class AuthorsController : ControllerBase
         //return Ok(authorDtoDataShapedToReturn);
         //We have done these in the MediatR Handler
 
-        IEnumerable<LinkDto> links = CreateLinksForAuthor(authorId, fields);
+        if (parsedMediaType.MediaType == "application/vnd.marvin.hateoas+json")
+        {
+            IEnumerable<LinkDto> links = CreateLinksForAuthor(authorId, fields);
 
-        IDictionary<string, object?> linkedResourceToReturn = shapedAuthorDto as IDictionary<string, object?>;
-        linkedResourceToReturn.Add("links", links);
-        
-        //return Ok(shapedAuthorDto);
-        return Ok(linkedResourceToReturn);
+            IDictionary<string, object?> linkedResourceToReturn = shapedAuthorDto as IDictionary<string, object?>;
+            linkedResourceToReturn.Add("links", links);
+
+            return Ok(linkedResourceToReturn);
+        }
+
+        return Ok(shapedAuthorDto);
     }
 
     public IEnumerable<LinkDto> CreateLinksForAuthor(Guid authorId, string? fields)
