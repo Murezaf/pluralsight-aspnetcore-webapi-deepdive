@@ -3,5 +3,6 @@
 public enum ResorceUriType
 {
     NextPage,
-    PreviousPage
+    PreviousPage,
+    Current
 }

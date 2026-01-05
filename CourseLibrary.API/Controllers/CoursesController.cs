@@ -39,7 +39,7 @@ public class CoursesController : ControllerBase
         _mediator = mediator ?? throw new ArgumentNullException(nameof(_mediator));
     }
 
-    [HttpGet]
+    [HttpGet(Name = "GetCoursesForAuthor")]
     public async Task<ActionResult<IEnumerable<CourseDto>>> GetCoursesForAuthor(Guid authorId)
     {
         //if (!await _authorRepository.AuthorExistsAsync(authorId))
@@ -84,7 +84,7 @@ public class CoursesController : ControllerBase
         return Ok(courseDtoToReturn);
     }
 
-    [HttpPost]
+    [HttpPost(Name = "CreateCourseForAuthor")]
     public async Task<ActionResult<CourseDto>> CreateCourseForAuthor(Guid authorId, CourseForCreationDto courseFroCreation)
     {
         //if (!await _authorRepository.AuthorExistsAsync(authorId))
@@ -101,7 +101,7 @@ public class CoursesController : ControllerBase
 
         //var courseToReturn = _mapper.Map<CourseDto>(courseEntity);
         CourseDto courseToReturn = await _mediator.Send(new CreateCourseForAuthorCommand(authorId, courseFroCreation));
-
+        
         //return Ok(courseToReturn); //for POST method, returning a 200 Ok is not standard
         return CreatedAtRoute("GetCourseForAuthor",
             //new { authorId = authorId, courseId = courseToReturn.Id },
