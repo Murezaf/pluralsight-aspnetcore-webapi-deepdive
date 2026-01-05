@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CourseLibrary.API.ActionConstraint;
 using CourseLibrary.API.Application.Authors.Commands;
 using CourseLibrary.API.Application.Authors.Queries;
 using CourseLibrary.API.Entities;
@@ -170,6 +171,7 @@ public class AuthorsController : ControllerBase
         }
     }
 
+    [NonAction]
     public IEnumerable<LinkDto> CreateLinksForAuthors(AuthorRecourseParameters authorRecourseParameters,
         bool hasNext, bool hasPrevious)
     {
@@ -186,6 +188,13 @@ public class AuthorsController : ControllerBase
         return links;
     }
 
+    [Produces(
+      "application/json",
+      "application/vnd.marvin.hateoas+json",
+      "application/vnd.marvin.author.full+json",
+      "application/vnd.marvin.author.full.hateoas+json",
+      "application/vnd.marvin.author.friendly+json",
+      "application/vnd.marvin.author.friendly.hateoas+json")]
     [HttpGet("{authorId}", Name = "GetAuthor")]
     //public async Task<ActionResult<AuthorDto>> GetAuthor(Guid authorId)
     //public async Task<IActionResult> GetAuthor(Guid authorId, string? fields)
@@ -198,6 +207,17 @@ public class AuthorsController : ControllerBase
                 statusCode: 400, detail: "Accept header media type is not a valid media type."));
         }
 
+        bool includeLinks = parsedMediaType.SubTypeWithoutSuffix.EndsWith("hateoas", StringComparison.InvariantCultureIgnoreCase);
+
+        IEnumerable<LinkDto> links = new List<LinkDto>();
+        if (includeLinks)
+        {
+            links = CreateLinksForAuthor(authorId, fields);
+        }
+
+        var primaryDataType = includeLinks ? parsedMediaType.SubTypeWithoutSuffix.Substring(0, parsedMediaType.SubTypeWithoutSuffix.Length - 8) 
+            : parsedMediaType.SubTypeWithoutSuffix;
+
         if (!_propertyCheckerService.TypeHasProperties<AuthorDto>(fields))
         {
             return BadRequest(
@@ -208,16 +228,32 @@ public class AuthorsController : ControllerBase
         }
 
         //Author authorFromRepo = await _authorRepository.GetAuthorAsync(authorId);
-        ExpandoObject shapedAuthorDto = await _mediator.Send(new GetAuthorByIdQuery(authorId, fields));
-
+        //ExpandoObject shapedAuthorDto = await _mediator.Send(new GetAuthorByIdQuery(authorId, fields));
 
         //if (authorFromRepo == null)
         //{
         //    return NotFound();
         //}
-        if (shapedAuthorDto == null)
+        //if (shapedAuthorDto == null)
+        //{
+        //    return NotFound();
+        //}
+
+        //return Ok(shapedAuthorDto);
+
+        if (primaryDataType == "vnd.marvin.author.full")
         {
-            return NotFound();
+            ExpandoObject shapedFullAuthorDto = await _mediator.Send(new GetFullAuthorByIdQuery(authorId, fields));
+            if (shapedFullAuthorDto == null) return NotFound();
+
+            var fullResourceToReturn = shapedFullAuthorDto as IDictionary<string, object?>;
+
+            if(includeLinks)
+            {
+                fullResourceToReturn.Add("links", links);
+            }
+
+            return Ok(fullResourceToReturn);
         }
 
         //AuthorDto authorDtoToReturn = _mapper.Map<AuthorDto>(authorFromRepo);
@@ -225,19 +261,30 @@ public class AuthorsController : ControllerBase
         //return Ok(authorDtoDataShapedToReturn);
         //We have done these in the MediatR Handler
 
-        if (parsedMediaType.MediaType == "application/vnd.marvin.hateoas+json")
+        //if (parsedMediaType.MediaType == "application/vnd.marvin.hateoas+json")
+        //{
+        //    IEnumerable<LinkDto> links = CreateLinksForAuthor(authorId, fields);
+
+        //    IDictionary<string, object?> linkedResourceToReturn = shapedAuthorDto as IDictionary<string, object?>;
+        //    linkedResourceToReturn.Add("links", links);
+
+        //    return Ok(linkedResourceToReturn);
+        //}
+
+        ExpandoObject friendlyShapedAuthorDto = await _mediator.Send(new GetAuthorByIdQuery(authorId, fields));
+        if (friendlyShapedAuthorDto == null) return NotFound();
+
+        var friendlyResourceToReturn = friendlyShapedAuthorDto as IDictionary<string, object?>;
+
+        if(includeLinks)
         {
-            IEnumerable<LinkDto> links = CreateLinksForAuthor(authorId, fields);
-
-            IDictionary<string, object?> linkedResourceToReturn = shapedAuthorDto as IDictionary<string, object?>;
-            linkedResourceToReturn.Add("links", links);
-
-            return Ok(linkedResourceToReturn);
+            friendlyResourceToReturn.Add("links", links);
         }
-
-        return Ok(shapedAuthorDto);
+        
+        return Ok(friendlyResourceToReturn);
     }
 
+    [NonAction]
     public IEnumerable<LinkDto> CreateLinksForAuthor(Guid authorId, string? fields)
     {
         List<LinkDto> links = new List<LinkDto>();
@@ -255,6 +302,8 @@ public class AuthorsController : ControllerBase
     }
 
     [HttpPost(Name = "CreateAuthor")]
+    [RequestHeaderMatchesMediaType("Content-Type", "application/json", "application/vnd.marvin.authorforcreation+json")]
+    [Consumes("application/json", "application/vnd.marvin.authorforcreation+json")]
     public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorForCreationDto authorForCreationDto)
     {
         //var authorEntity = _mapper.Map<Entities.Author>(authorForCreationDto);
@@ -277,6 +326,25 @@ public class AuthorsController : ControllerBase
         //return CreatedAtRoute("GetAuthor",
         //    new { authorId = authorDtoToReturn.Id },
         //    authorDtoToReturn);
+        return CreatedAtRoute("GetAuthor",
+            new { authorId = linkedResourceToReturn["Id"] },
+            linkedResourceToReturn);
+    }
+
+    [HttpPost(Name = "CreateAuthorWithDateOdDeath")]
+    [RequestHeaderMatchesMediaType("Content-Type", "application/vnd.marvin.authorforcreationwithdateofdeath+json")]
+    [Consumes("application/vnd.marvin.authorforcreationwithdateofdeath+json")]
+    public async Task<ActionResult<AuthorDto>> CreateAuthorWithDateOdDeath(AuthorForCreationWithDateOfDeathDto authorForCreationDto)
+    {
+        AuthorDto authorDtoToReturn = await _mediator.Send(new CreateAuthorWithDateOfDeathCommand(authorForCreationDto));
+
+        IEnumerable<LinkDto> links = CreateLinksForAuthor(authorDtoToReturn.Id, null);
+
+        ExpandoObject expandoObjectOfAuthorDtoToReturn = authorDtoToReturn.ShapeData(null);
+        IDictionary<string, object?> linkedResourceToReturn = expandoObjectOfAuthorDtoToReturn as IDictionary<string, object?>;
+
+        linkedResourceToReturn.Add("links", links);
+
         return CreatedAtRoute("GetAuthor",
             new { authorId = linkedResourceToReturn["Id"] },
             linkedResourceToReturn);

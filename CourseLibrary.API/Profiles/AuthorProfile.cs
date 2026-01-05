@@ -11,10 +11,13 @@ public class AuthorsProfile : Profile
         CreateMap<Entities.Author, Models.AuthorDto>()
             .ForMember(dest => dest.Name, opt => 
                 opt.MapFrom(src => $"{src.FirstName} {src.LastName}"))
-            .ForMember(dest => dest.Age, opt => 
-                opt.MapFrom(src => src.DateOfBirth.GetCurrentAge()));
+            .ForMember(dest => dest.Age, opt =>
+                opt.MapFrom(src => src.DateOfBirth.GetCurrentAge(src.DateOfDeath)));
+                //opt.MapFrom(src => src.DateOfBirth.GetCurrentAge()));
 
         CreateMap<AuthorForCreationDto, Author>();
+        CreateMap<Author, FullAuthorDto>();
+        CreateMap<AuthorForCreationWithDateOfDeathDto, Author>();
     }
 }
 
