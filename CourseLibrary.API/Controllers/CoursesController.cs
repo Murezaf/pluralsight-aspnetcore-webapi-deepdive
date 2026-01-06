@@ -1,25 +1,20 @@
-﻿using AutoMapper;
-using CourseLibrary.API.Application.Authors.Queries;
-using CourseLibrary.API.Application.Courses.Commands;
-using CourseLibrary.API.Application.Courses.Queries;
-using CourseLibrary.API.Entities;
-using CourseLibrary.API.Models;
-using CourseLibrary.API.Repositories.Implementations;
-using CourseLibrary.API.Repositories.Interfaces;
+﻿using CourseLibrary.Application.Application.Authors.Queries;
+using CourseLibrary.Application.Application.Courses.Commands;
+using CourseLibrary.Application.Application.Courses.Queries;
+using CourseLibrary.Application.Models;
 using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 
 namespace CourseLibrary.API.Controllers;
 
 [ApiController]
 [Route("api/authors/{authorId}/courses")]
+[ResponseCache(CacheProfileName = "240SecondsCacheProfile")]
 public class CoursesController : ControllerBase
 {
     //private readonly ICourseRepository _courseRepository;
@@ -58,6 +53,7 @@ public class CoursesController : ControllerBase
         return Ok(coursesForAuthorToReturn);
     }
 
+    [ResponseCache(Duration = 120)]
     [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
     public async Task<ActionResult<CourseDto>> GetCourseForAuthor(Guid authorId, Guid courseId)
     {

@@ -1,21 +1,17 @@
 ﻿using AutoMapper;
 using CourseLibrary.API.ActionConstraint;
-using CourseLibrary.API.Application.Authors.Commands;
-using CourseLibrary.API.Application.Authors.Queries;
-using CourseLibrary.API.Entities;
-using CourseLibrary.API.Helpers;
-using CourseLibrary.API.Models;
-using CourseLibrary.API.Repositories;
-using CourseLibrary.API.Repositories.Interfaces;
-using CourseLibrary.API.ResourceParameters;
-using CourseLibrary.API.Services;
+using CourseLibrary.Application.Application.Authors.Commands;
+using CourseLibrary.Application.Application.Authors.Queries;
+using CourseLibrary.Application.Helpers;
+using CourseLibrary.Application.Models;
+using CourseLibrary.Application.ResourceParameters;
+using CourseLibrary.Application.Services;
+using CourseLibrary.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.Net.Http.Headers;
 using System.Dynamic;
 using System.Text.Json;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace CourseLibrary.API.Controllers;
 
@@ -24,28 +20,28 @@ namespace CourseLibrary.API.Controllers;
 public class AuthorsController : ControllerBase
 {
     //private readonly ICourseLibraryRepository _courseLibraryRepository;
-    private readonly IAuthorRepository _authorRepository;
+    //private readonly IAuthorRepository _authorRepository;
     private readonly IMediator _mediator;
-    private readonly IMapper _mapper;
+    //private readonly IMapper _mapper;
     private readonly IPropertyMappingService _propertyMappingService;
     private readonly IPropertyCheckerService _propertyCheckerService;
     private readonly ProblemDetailsFactory _problemDetailsFactory;
 
     public AuthorsController(
         //ICourseLibraryRepository courseLibraryRepository,
-        IAuthorRepository authorRepository,
+        //IAuthorRepository authorRepository,
         IMediator mediator, IMapper mapper,
         IPropertyMappingService propertyMappingService, IPropertyCheckerService propertyCheckerService,
         ProblemDetailsFactory problemDetailsFactory)
     {
         //_courseLibraryRepository = courseLibraryRepository ??
         //    throw new ArgumentNullException(nameof(courseLibraryRepository));
-        _authorRepository = authorRepository ??
-            throw new ArgumentNullException(nameof(authorRepository));
+        //_authorRepository = authorRepository ??
+            //throw new ArgumentNullException(nameof(authorRepository));
         _mediator = mediator ??
             throw new ArgumentNullException(nameof(mediator));
-        _mapper = mapper ??
-            throw new ArgumentNullException(nameof(mapper));
+        //_mapper = mapper ??
+            //throw new ArgumentNullException(nameof(mapper));
         _propertyMappingService = propertyMappingService ??
             throw new ArgumentNullException(nameof(propertyMappingService));
         _propertyCheckerService = propertyCheckerService ??

@@ -1,7 +1,7 @@
-﻿using CourseLibrary.API.DbContexts;
-using CourseLibrary.API.Repositories.Implementations;
-using CourseLibrary.API.Repositories.Interfaces;
-using CourseLibrary.API.Services;
+﻿using CourseLibrary.Application.Contracts;
+using CourseLibrary.Application.Services;
+using CourseLibrary.Infrastructure.DbContexts;
+using CourseLibrary.Infrastructure.RepositoryImplementations;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -19,6 +19,7 @@ internal static class StartupHelperExtensions
         builder.Services.AddControllers(configure =>
         {
             configure.ReturnHttpNotAcceptable = true;
+            configure.CacheProfiles.Add("240SecondsCacheProfile", new() { Duration = 240 });
         })//.AddXmlDataContractSerializerFormatters() //to avoid having xml as fist element of OutputFormatter(the default formatter of our API), we add it after changing our JSON formatter to NewtonsoftJson.
         .AddNewtonsoftJson(setupAction =>
         {
@@ -67,16 +68,23 @@ internal static class StartupHelperExtensions
 
         builder.Services.AddDbContext<CourseLibraryContext>(options =>
         {
-            options.UseSqlite(@"Data Source=library.db");
+            options.UseSqlite(
+                builder.Configuration.GetConnectionString("CourseLibraryDBConnection"),
+                b => b.MigrationsAssembly("CourseLibrary.Infrastructure")
+            );
         });
+
 
         builder.Services.AddAutoMapper(
             AppDomain.CurrentDomain.GetAssemblies());
-        
+
         builder.Services.AddMediatR(cfg =>
         {
-            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+            cfg.RegisterServicesFromAssembly(typeof(CourseLibrary.Application.Application.Authors.Queries.GetAuthorsQueryHandler).Assembly);
         });
+
+
+        builder.Services.AddResponseCaching();
 
         return builder.Build();
     }
@@ -99,6 +107,8 @@ internal static class StartupHelperExtensions
             });
         }
  
+        app.UseResponseCaching();
+
         app.UseAuthorization();
 
         app.MapControllers(); 

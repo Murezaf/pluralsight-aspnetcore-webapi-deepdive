@@ -1,10 +1,7 @@
-﻿using AutoMapper;
-using CourseLibrary.API.Application.AuthorCollections.Commands;
-using CourseLibrary.API.Application.AuthorCollections.Queries;
-using CourseLibrary.API.Entities;
-using CourseLibrary.API.Helpers;
-using CourseLibrary.API.Models;
-using CourseLibrary.API.Repositories.Interfaces;
+﻿using CourseLibrary.API.Helpers;
+using CourseLibrary.Application.Application.AuthorCollections.Commands;
+using CourseLibrary.Application.Application.AuthorCollections.Queries;
+using CourseLibrary.Application.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

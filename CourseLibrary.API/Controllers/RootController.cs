@@ -1,5 +1,4 @@
-﻿using CourseLibrary.API.Models;
-using Microsoft.AspNetCore.Http;
+﻿using CourseLibrary.Application.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseLibrary.API.Controllers;
