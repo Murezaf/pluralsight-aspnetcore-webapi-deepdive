@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using CourseLibrary.Application.Contracts;
+using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using CourseLibrary.Application.Models;
 using MediatR;
 
@@ -7,22 +8,15 @@ namespace CourseLibrary.Application.Application.Courses.Queries;
 
 public class GetCoursesForAuthorQueryHandler : IRequestHandler<GetCoursesForAuthorQuery, IEnumerable<CourseDto>>
 {
-    private readonly ICourseRepository _courseRepository;
-    private readonly IMapper _mapper;
+    private readonly ICourseService _courseService;
 
-    public GetCoursesForAuthorQueryHandler(
-        ICourseRepository courseRepository,
-        IMapper mapper)
+    public GetCoursesForAuthorQueryHandler(ICourseService courseService)
     {
-        _courseRepository = courseRepository;
-        _mapper = mapper;
+        _courseService = courseService ?? throw new ArgumentNullException(nameof(courseService));
     }
 
-    public async Task<IEnumerable<CourseDto>> Handle(
-        GetCoursesForAuthorQuery request,
-        CancellationToken cancellationToken)
+    public async Task<IEnumerable<CourseDto>> Handle(GetCoursesForAuthorQuery request, CancellationToken cancellationToken)
     {
-        var courses = await _courseRepository.GetCoursesAsync(request.AuthorId);
-        return _mapper.Map<IEnumerable<CourseDto>>(courses);
+        return await _courseService.GetCoursesForAuthorAsync(request.AuthorId);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using CourseLibrary.Application.Contracts;
+using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using CourseLibrary.Application.Models;
 using CourseLibrary.Domain;
 using MediatR;
@@ -9,56 +10,18 @@ namespace CourseLibrary.Application.Application.Courses.Commands;
 
 public class PartiallyUpdateCourseForAuthorCommandHandler : IRequestHandler<PartiallyUpdateCourseForAuthorCommand, CourseDto?>
 {
-    private readonly ICourseRepository _courseRepository;
-    private readonly IMapper _mapper;
+    private readonly ICourseService _courseService;
 
-    public PartiallyUpdateCourseForAuthorCommandHandler(
-        ICourseRepository courseRepository,
-        IMapper mapper)
+    public PartiallyUpdateCourseForAuthorCommandHandler(ICourseService courseService)
     {
-        _courseRepository = courseRepository
-            ?? throw new ArgumentNullException(nameof(courseRepository));
-        _mapper = mapper
-            ?? throw new ArgumentNullException(nameof(mapper));
+        _courseService = courseService ?? throw new ArgumentNullException(nameof(courseService));
     }
 
     public async Task<CourseDto?> Handle(PartiallyUpdateCourseForAuthorCommand request, CancellationToken cancellationToken)
     {
-        var courseEntity = await _courseRepository.GetCourseAsync(request.AuthorId, request.CourseId);
-
-        if (courseEntity == null)
-        {
-            CourseForUpdateDto courseToAdd = new CourseForUpdateDto();
-
-            request.PatchDocument.ApplyTo(courseToAdd);
-
-            Validate(courseToAdd);
-
-            var newEntity = _mapper.Map<Course>(courseToAdd);
-            newEntity.Id = request.CourseId;
-
-            _courseRepository.AddCourse(request.AuthorId, newEntity);
-            await _courseRepository.SaveAsync();
-
-            return _mapper.Map<CourseDto>(newEntity);
-        }
-
-        var courseToPatch = _mapper.Map<CourseForUpdateDto>(courseEntity);
-
-        request.PatchDocument.ApplyTo(courseToPatch);
-        Validate(courseToPatch);
-
-        _mapper.Map(courseToPatch, courseEntity);
-        await _courseRepository.SaveAsync();
-
-        return null;
-    }
-
-    private static void Validate(CourseForUpdateDto dto)
-    {
-        Validator.ValidateObject(
-            dto,
-            new System.ComponentModel.DataAnnotations.ValidationContext(dto),
-            validateAllProperties: true);
+        return await _courseService.PartiallyUpdateCourseForAuthorAsync(
+            request.AuthorId,
+            request.CourseId,
+            request.PatchDocument);
     }
 }

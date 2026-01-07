@@ -1,29 +1,21 @@
 ﻿using AutoMapper;
-using CourseLibrary.Application.Contracts;
+using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using MediatR;
 
 namespace CourseLibrary.Application.Application.Courses.Commands;
 
 public class DeleteCourseForAuthorCommandHandler : IRequestHandler<DeleteCourseForAuthorCommand, bool>
 {
-    private readonly ICourseRepository _courseRepository;
+    private readonly ICourseService _courseService;
 
-    public DeleteCourseForAuthorCommandHandler(ICourseRepository courseRepository)
+    public DeleteCourseForAuthorCommandHandler(ICourseService courseService)
     {
-        _courseRepository = courseRepository
-            ?? throw new ArgumentNullException(nameof(courseRepository));
+        _courseService = courseService ?? throw new ArgumentNullException(nameof(courseService));
     }
 
     public async Task<bool> Handle(DeleteCourseForAuthorCommand request, CancellationToken cancellationToken)
     {
-        var courseEntity = await _courseRepository.GetCourseAsync(request.AuthorId, request.CourseId);
-
-        if (courseEntity == null)
-            return false;
-
-        _courseRepository.DeleteCourse(courseEntity);
-        await _courseRepository.SaveAsync();
-
-        return true;
+        return await _courseService.DeleteCourseForAuthorAsync(request.AuthorId, request.CourseId);
     }
 }

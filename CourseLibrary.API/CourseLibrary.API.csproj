@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CourseLibrary.Application\CourseLibrary.Application.csproj" />
     <ProjectReference Include="..\CourseLibrary.Infrastructure\CourseLibrary.Infrastructure.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Services\CourseLibrary.Services.csproj" />
   </ItemGroup>
 
 </Project>

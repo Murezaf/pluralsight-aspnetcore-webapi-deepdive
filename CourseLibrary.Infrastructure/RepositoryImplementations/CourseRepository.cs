@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Application.Contracts;
+﻿using CourseLibrary.Application.Contracts.RepositoryContracts;
 using CourseLibrary.Domain;
 using CourseLibrary.Infrastructure.DbContexts;
 using Microsoft.EntityFrameworkCore;

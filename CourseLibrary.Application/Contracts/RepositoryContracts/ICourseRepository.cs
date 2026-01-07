@@ -1,6 +1,6 @@
 ﻿using CourseLibrary.Domain;
 
-namespace CourseLibrary.Application.Contracts;
+namespace CourseLibrary.Application.Contracts.RepositoryContracts;
 
 public interface ICourseRepository : IRepository
 {

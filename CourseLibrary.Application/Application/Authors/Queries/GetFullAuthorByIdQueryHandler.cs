@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using CourseLibrary.Application.Contracts;
+using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using CourseLibrary.Application.Helpers;
 using CourseLibrary.Application.Models;
 using CourseLibrary.Domain;
@@ -10,29 +11,22 @@ namespace CourseLibrary.Application.Application.Authors.Queries;
 
 public class GetFullAuthorByIdQueryHandler : IRequestHandler<GetFullAuthorByIdQuery, ExpandoObject>
 {
-    private readonly IAuthorRepository _authorRepository;
-    private readonly IMapper _mapper;
+    private readonly IAuthorService _authorService;
 
-    public GetFullAuthorByIdQueryHandler(
-        IAuthorRepository authorRepository,
-        IMapper mapper)
+    public GetFullAuthorByIdQueryHandler(IAuthorService authorService)
     {
-        _authorRepository = authorRepository ?? throw new ArgumentNullException(nameof(authorRepository));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _authorService = authorService ?? throw new ArgumentNullException(nameof(authorService));
     }
 
     public async Task<ExpandoObject> Handle(GetFullAuthorByIdQuery request, CancellationToken cancellationToken)
     {
-        Author author = await _authorRepository.GetAuthorAsync(request.AuthorId);
+        var fullAuthorDto = await _authorService.GetFullAuthorAsync(request.AuthorId);
 
-        if (author == null)
+        if (fullAuthorDto == null)
         {
             return null;
         }
 
-        FullAuthorDto authoFullrDto = _mapper.Map<FullAuthorDto>(author);
-        ExpandoObject shapedData = authoFullrDto.ShapeData(request.Fields);
-
-        return shapedData;
+        return fullAuthorDto.ShapeData(request.Fields);
     }
 }

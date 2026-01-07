@@ -1,7 +1,9 @@
-﻿using CourseLibrary.Application.Contracts;
+﻿using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using CourseLibrary.Application.Services;
 using CourseLibrary.Infrastructure.DbContexts;
 using CourseLibrary.Infrastructure.RepositoryImplementations;
+using CourseLibrary.Services.ServiceImplementations;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -57,10 +59,14 @@ internal static class StartupHelperExtensions
             }
         });
 
-        builder.Services.AddScoped<ICourseLibraryRepository, 
-            CourseLibraryRepository>();
+        //builder.Services.AddScoped<ICourseLibraryRepository, 
+            //CourseLibraryRepository>();
         builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
         builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+
+        builder.Services.AddScoped<IAuthorService, AuthorService>();
+        builder.Services.AddScoped<ICourseService, CourseService>();
+        builder.Services.AddScoped<IAuthorCollectionService, AuthorCollectionsService>();
 
         builder.Services.AddTransient<IPropertyMappingService, PropertyMappingService>();
 

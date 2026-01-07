@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using CourseLibrary.Application.Contracts;
+using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using CourseLibrary.Application.Helpers;
 using CourseLibrary.Application.Models;
 using CourseLibrary.Domain;
@@ -10,25 +11,27 @@ namespace CourseLibrary.Application.Application.Authors.Queries;
 
 public class GetAuthorsQueryHandler : IRequestHandler<GetAuthorsQuery, PagedList<ExpandoObject>>
 {
-    private readonly IAuthorRepository _authorRepository;
-    private readonly IMapper _mapper;
+    private readonly IAuthorService _authorService;
 
-    public GetAuthorsQueryHandler(IAuthorRepository authorRepository, IMapper mapper)
+    public GetAuthorsQueryHandler(IAuthorService authorService)
     {
-        _authorRepository = authorRepository
-            ?? throw new ArgumentNullException(nameof(authorRepository));
-        _mapper = mapper
-            ?? throw new ArgumentNullException(nameof(mapper));
+        _authorService = authorService ?? throw new ArgumentNullException(nameof(authorService));
     }
 
     public async Task<PagedList<ExpandoObject>> Handle(GetAuthorsQuery request, CancellationToken cancellationToken)
     {
-        PagedList<Author> authorsFromRepo = await _authorRepository.GetAuthorsAsync(request.AuthorRecourseParameters);
+        var authorsDto = await _authorService.GetAuthorsAsync(request.AuthorRecourseParameters);
 
-        IEnumerable<AuthorDto> authorsDto = _mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo);
+        var authorsEnumerable = (IEnumerable<AuthorDto>)authorsDto;
 
-        List<ExpandoObject> shapedData = authorsDto.ShapeData(request.AuthorRecourseParameters.Fields).ToList();
+        var shapedData = authorsEnumerable
+            .ShapeData(request.AuthorRecourseParameters.Fields)
+            .ToList();
 
-        return new PagedList<ExpandoObject>(shapedData, authorsFromRepo.TotalCount, authorsFromRepo.CurrentPage, authorsFromRepo.PageSize);
+        return new PagedList<ExpandoObject>(
+            shapedData,
+            authorsDto.TotalCount,
+            authorsDto.CurrentPage,
+            authorsDto.PageSize);
     }
 }

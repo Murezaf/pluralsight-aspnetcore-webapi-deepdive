@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Application.Contracts;
+﻿using CourseLibrary.Application.Contracts.RepositoryContracts;
 using CourseLibrary.Application.Helpers;
 using CourseLibrary.Application.Models;
 using CourseLibrary.Application.ResourceParameters;

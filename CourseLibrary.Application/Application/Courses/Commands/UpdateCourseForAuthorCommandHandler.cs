@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using CourseLibrary.Application.Contracts;
+using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using CourseLibrary.Application.Models;
 using CourseLibrary.Domain;
 using MediatR;
@@ -8,37 +9,18 @@ namespace CourseLibrary.Application.Application.Courses.Commands;
 
 public class UpdateCourseForAuthorCommandHandler : IRequestHandler<UpdateCourseForAuthorCommand, CourseDto?>
 {
-    private readonly ICourseRepository _courseRepository;
-    private readonly IMapper _mapper;
+    private readonly ICourseService _courseService;
 
-    public UpdateCourseForAuthorCommandHandler(
-        ICourseRepository courseRepository,
-        IMapper mapper)
+    public UpdateCourseForAuthorCommandHandler(ICourseService courseService)
     {
-        _courseRepository = courseRepository
-            ?? throw new ArgumentNullException(nameof(courseRepository));
-        _mapper = mapper
-            ?? throw new ArgumentNullException(nameof(mapper));
+        _courseService = courseService ?? throw new ArgumentNullException(nameof(courseService));
     }
 
     public async Task<CourseDto?> Handle(UpdateCourseForAuthorCommand request, CancellationToken cancellationToken)
     {
-        var courseEntity = await _courseRepository.GetCourseAsync(request.AuthorId, request.CourseId);
-
-        if (courseEntity == null)
-        {
-            Course newCourse = _mapper.Map<Course>(request.CourseForUpdateDto);
-            newCourse.Id = request.CourseId;
-
-            _courseRepository.AddCourse(request.AuthorId, newCourse);
-            await _courseRepository.SaveAsync();
-
-            return _mapper.Map<CourseDto>(newCourse);
-        }
-
-        _mapper.Map(request.CourseForUpdateDto, courseEntity);
-        await _courseRepository.SaveAsync();
-
-        return null;
+        return await _courseService.UpdateCourseForAuthorAsync(
+            request.AuthorId,
+            request.CourseId,
+            request.CourseForUpdateDto);
     }
 }

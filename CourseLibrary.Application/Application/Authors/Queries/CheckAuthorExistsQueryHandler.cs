@@ -1,19 +1,20 @@
-﻿using CourseLibrary.Application.Contracts;
+﻿using CourseLibrary.Application.Contracts.RepositoryContracts;
+using CourseLibrary.Application.Contracts.ServiceContracts;
 using MediatR;
 
 namespace CourseLibrary.Application.Application.Authors.Queries;
 
 public class CheckAuthorExistsQueryHandler : IRequestHandler<CheckAuthorExistsQuery, bool>
 {
-    private readonly IAuthorRepository _authorRepository;
+    private readonly IAuthorService _authorService;
 
-    public CheckAuthorExistsQueryHandler(IAuthorRepository authorRepository)
+    public CheckAuthorExistsQueryHandler(IAuthorService authorService)
     {
-        _authorRepository = authorRepository ?? throw new ArgumentNullException(nameof(authorRepository));
+        _authorService = authorService ?? throw new ArgumentNullException(nameof(authorService));
     }
 
     public async Task<bool> Handle(CheckAuthorExistsQuery request, CancellationToken cancellationToken)
     {
-        return await _authorRepository.AuthorExistsAsync(request.AuthorId);
+        return await _authorService.AuthorExistsAsync(request.AuthorId);
     }
 }
